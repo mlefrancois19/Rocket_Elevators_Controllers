@@ -1,0 +1,96 @@
+The Residential building for which the first controller is to be programmed has only one column consisting of two elevators and 10 floors.
+Objects that need to be controlled:
+Column
+Elevators (Cages)
+Call buttons
+Doors
+Floor request buttons
+
+-------------------------------------------------------------------------------------------------------------------------
+DEFINE Column USING id AND status:
+    ID: id,
+    Status: status,
+    ElevatorList: SET to empty List
+    SEQUENCE createElevatorList USING elevator_amount
+        [...]
+        [...]
+    ENDSEQUENCE
+ENDDEFINE
+SET column1 TO INSTANTIATE Column WITH 1 AND online
+SET column1 status TO offline
+
+
+DEFINE 
+Elevators (Cages) (id, status)
+Call buttons (up, Down)
+Doors
+Floor request buttons
+
+PROGRAM Elevators
+    elevator(A & B).status = idle;
+    Run PROGRAM Listen
+
+
+PROGRAM Listen
+    WHILE elevator(A & B).status = idle DO
+
+        IF |currentFloorA - floorRequestButton| < |currentFloorB - floorRequestButton| THEN
+            elevatorA is called
+        ELSE 
+            elevatorB is called;
+        END
+
+        IF elevator A(B) is moving down and callButtonUp(floorRequestButton) = pressed THEN
+            elevator B(A) is called
+        END 
+
+        IF elevator A(B) is moving up and callButtonDown(floorRequestButton) = pressed THEN
+            elevator B(A) is called
+        END 
+
+        Create a queue of actions
+        Execute actions in order
+
+
+        IF currentFloor < floorRequestButton THEN 
+            IF callButtonUp(floorRequestButton) or callButtonDown(floorRequestButton) = pressed THEN
+                Run PROGRAM MoveUp;
+            END
+        ELSE IF currentFloor > floorRequestButton THEN 
+            IF callButtonUp(floorRequestButton) or callButtonDown(floorRequestButton) = pressed THEN
+                Run PROGRAM MoveDown;
+            END
+        END
+    END
+
+
+PROGRAM MoveUp;
+    IF currentFloor = 10 THEN
+        Run PROGRAM Listen
+    END
+
+    IF currentFloor < 10 THEN
+        status = move
+        For each floor moving up currentFloor = currentFloor + 1
+    END
+    status = idle
+
+
+PROGRAM MoveDown;
+    IF currentFloor = 1 THEN
+        Run PROGRAM Listen
+    END
+
+    IF currentFloor < 10 THEN
+        status = move
+        For each floor moving up currentFloor = currentFloor + 1
+    END
+    status = idle
+
+
+
+
+
+
+
+-------------------------------------------------------------------------------------------------------------------------
