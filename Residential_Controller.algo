@@ -189,8 +189,8 @@ set floorDisplay // "client's destination floor "
 	IF elevatorA is moving up THEN 
         REPEAT
 		    Get firts item of arrayAup
-			IF positionEleA = arrayAup[0] THEN // "if current position of elevator A is one of the destination floor --> delete action & 
-            open the door"
+			IF positionEleA = arrayAup[0] THEN // "if current position of elevator A is one of the destination floor --> delete 
+            this action in action list & open the door"
 				delete arrayAup[0]
                 open the door
 			ELSE // "if not, continue moving up"
@@ -217,6 +217,16 @@ set floorDisplay // "client's destination floor "
 ********************* END PROGRAM main **********************
 
 
+********************* PROGRAM door **********************
+    WHILE (true)
+        IF positionEleA = arrayAup[0] or positionEleA = arrayAdown[0] or 
+            positionEleB = arrayBup[0] or positionEleB = arrayBdown[0] THEN
+                open the door
+                wait 15 seconds
+                close the door 
+                continue processing list of actions
+        END IF
+    END WHILE
 
 
 
