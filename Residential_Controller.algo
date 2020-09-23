@@ -1,91 +1,221 @@
-The Residential building for which the first controller is to be programmed has only one column consisting of two elevators and 10 floors.
-Objects that need to be controlled:
-Column
-Elevators (Cages)
-Call buttons
-Doors
-Floor request buttons
 
--------------------------------------------------------------------------------------------------------------------------
-DEFINE Column USING id AND status:
-    ID: id,
-    Status: status,
-    ElevatorList: SET to empty List
-    SEQUENCE createElevatorList USING elevator_amount
-        [...]
-        [...]
-    ENDSEQUENCE
+DEFINE Elevators (Cages) USING 
+    ID: elevatorA, elevatorB
+    Status: idle, moveUp, moveDown
+    arrayAup, arrayAdown, arrayBup, arrayBdown // "to make queue of actions. Depends on the position of elevator and the requested floor, 
+    we have 4 options of array to put actions into: array_up and array_down for elevator A and B"
+    positionEleA, positionEleB // "curent position of elevator A and B"
 ENDDEFINE
-SET column1 TO INSTANTIATE Column WITH 1 AND online
-SET column1 status TO offline
+
+DEFINE callButtons USING
+    ID: callButtonUP, callButtonDOWN
+ENDDEFINE
 
 
-DEFINE 
-Elevators (Cages) (id, status)
-Call buttons (up, Down)
-Doors
-Floor request buttons
+set distance // "difference between current position of elevator and the requested floor"
+set floorRequestButton // "floor which client is standing to call elevator"
+set floorDisplay // "client's destination floor "
 
-PROGRAM Elevators
-    elevator(A & B).status = idle;
-    Run PROGRAM Listen
+********************* PROGRAM choosingElevators *********************
+-----------------------"CASE 1: ELEVATOR A AND B ARE IDLE"-----------------------
+    IF elevatorA is IDLE and elevatorB is IDLE THEN
+        IF distance from positionEleA to floorRequestButton is smaller THEN // "if elevator A is closer --> elevator A is chosen"
+            IF callButtonUP is checked THEN // "if clients want to go up"
+            arrayAup.add(floorRequestButton) // "add floorRequestButton to action"
+            arrayAup.add(floorDisplay) // "add floorDisplay to action"
+            sort arrayAup increasingly // "sort queue of actions increasingly"
+
+            IF callButtonDOWN is checked THEN // "if clients want to go down"
+            arrayAdown.add(floorRequestButton) // "add floorRequestButton to action"
+            arrayAdown.add(floorDisplay) // "add floorDisplay to action"
+            sort arrayAdown decreasingly // "sort queue of actions decreasingly"        
+        ELSE // "elevator B is chosen"
+            IF callButtonUP is checked THEN // "if clients want to go up"
+            arrayAup.add(floorRequestButton) // "add floorRequestButton to action"
+            arrayAup.add(floorDisplay) // "add floorDisplay to action"
+            sort arrayAup increasingly // "sort queue of actions increasingly"
+
+            IF callButtonDOWN is checked THEN // "if clients want to go down"
+            arrayAdown.add(floorRequestButton) // "add floorRequestButton to action"
+            arrayAdown.add(floorDisplay // "add floorDisplay to action"
+            sort arrayAdown decreasingly // "sort queue of actions decreasingly"
+        END IF
+    END IF
+
+-----------------------"CASE 2: ELEVATOR A IS MOVING UP AND ELEVATOR B IS IDLE"-----------------------
+    IF elevator A is MOVING UP and elevatorB is IDLE THEN
+    --- IF callButtonUP is checked and floorRequestButton < positionEleA THEN// "elevator A is moving up. If clients also want to go up 
+        but they are at lower level than current position of elevator A --> elevator B is chosen"
+            IF floorRequestButton < positionEleB THEN // "if clients are at lower level than current position of elevator B. Elevator B 
+            needs to go down to pick up clients"   
+                arrayBdown.add(floorRequestButton) 
+                arrayBdown.add(floorDisplay)
+                sort arrayBdown decreasingly 
+            ELSE // "if clients are at higher level than current position of elevator B. Elevator B needs to go up to pick up clients"   
+                arrayBup.add(floorRequestButton) 
+                arrayBup.add(floorDisplay)
+                sort arrayBup increasingly
+        END IF
+
+    --- IF callButtonUP is checked and floorRequestButton > positionEleA THEN // "elevator A is moving up. If clients also want to go up 
+        and they are at higher level than current position of elevator A --> elevator A is chosen --> add action to elevator A"
+            arrayAup.add(floorRequestButton) 
+            arrayAup.add(floorDisplay)
+            sort arrayAup increasingly 
+        END IF
+
+    --- IF callButtonDOWN is checked THEN // "elevator A is moving up. If clients want to go down then elevator B is chosen --> add action to elevator A"
+            IF floorRequestButton < positionEleB THEN // "if clients are at lower level than current position of elevator B. Elevator B 
+            needs to go down to pick up clients"   
+                arrayBdown.add(floorRequestButton) 
+                arrayBdown.add(floorDisplay)
+                sort arrayBdown decreasingly 
+            ELSE // "if clients are at higher level than current position of elevator B. Elevator B needs to go up to pick up clients"   
+                arrayBup.add(floorRequestButton) 
+                arrayBup.add(floorDisplay)
+                sort arrayBup increasingly
+        END IF
+    END IF
+
+-----------------------"CASE 3: ELEVATOR A IS MOVING DOWN AND ELEVATOR B IS IDLE"-----------------------
+    IF elevator A is MOVING DOWN and elevatorB is IDLE // 
+    "the concept is as same as ELevator A is moving up and Elevator B is idle"  
+    END IF
+
+-----------------------"CASE 4: ELEVATOR A & ELEVATOR B ARE MOVING UP"-----------------------
+    IF elevator A is MOVING UP and elevatorB is MOVING UP and callButtonUP is checked THEN
+        IF floorRequestButton > positionEleA and floorRequestButton > positionEleB THEN // "2 elevators are 
+        moving up. Clients also want to go up and they are at the higher level than current position of elevators A & B"
+            IF distance from positionEleA to floorRequestButton is smaller THEN // "if elevator A is closer --> choose elevator A"
+                arrayAup.add(floorRequestButton) 
+                arrayAup.add(floorDisplay)
+                sort arrayAup increasingly 
+            ELSE // "choose elevator B"   
+                arrayBup.add(floorRequestButton) 
+                arrayBup.add(floorDisplay)
+                sort arrayBup increasingly
+            END IF
+        END IF
+
+        IF floorRequestButton > positionEleA and floorRequestButton < positionEleB THEN // "2 elevators are moving up. 
+        Clients also want to go up and they are at the higher level than current position of elevators A (not B)--> choose elevator A"
+                arrayAup.add(floorRequestButton) 
+                arrayAup.add(floorDisplay)
+                sort arrayAup increasingly 
+        END IF
+
+        IF floorRequestButton < positionEleA and floorRequestButton < positionEleB THEN // "2 elevators are moving up. 
+        Clients also want to go up but they are at the lower level than 2 elevators --> choose the elevator who finishs working first"
+            IF arrayAup.length < arrayBup.length THEN // "if elevator A finish working first --> choose elevator A"
+                arrayAdown.add(floorRequestButton) 
+                arrayAdown.add(floorDisplay)
+                sort arrayAdown decreasingly 
+            ELSE // "choose elevator B"
+                arrayBdown.add(floorRequestButton) 
+                arrayBdown.add(floorDisplay)
+                sort arrayBdown decreasingly 
+            END IF
+        END IF
+
+    IF elevator A is MOVING UP and elevatorB is MOVING UP and callButtonDOWN is checked THEN // "2 elevators are moving up. Clients 
+    want to go down --> choose the elevator who finishs working first"
+        IF arrayAup.length < arrayBup.length THEN // "if elevator A finish working first --> choose elevator A"
+                arrayAdown.add(floorRequestButton) 
+                arrayAdown.add(floorDisplay)
+                sort arrayAdown decreasingly 
+        ELSE // "choose elevator B"
+                arrayBdown.add(floorRequestButton) 
+                arrayBdown.add(floorDisplay)
+                sort arrayBdown decreasingly 
+        END IF
+    END IF
+
+    
+-----------------------"CASE 5: ELEVATOR A IS MOVING UP & ELEVATOR B ARE MOVING DOWN"-----------------------
+    IF elevator A is MOVING UP and elevatorB is MOVING DOWN and callButtonUP is checked THEN // "elevator A is moving up and elevator B 
+    is moving down. Clients want to go up"
+        IF floorRequestButton > positionEleA THEN // "if clients are at higher level than current position of elevator A --> choose elevator A"
+            arrayAup.add(floorRequestButton) 
+            arrayAup.add(floorDisplay)
+            sort arrayAup increasingly         
+        ELSE // "clients are at lower level than current position of elevator A --> choose elevator B because elevator B is going down then when
+        elevator B finishs working, it will be going up to pick up these clients. It will save time compared to elevator A"
+            arrayBup.add(floorRequestButton) 
+            arrayBup.add(floorDisplay)
+            sort arrayBup increasingly 
+        END IF
+    END IF
+
+    IF elevator A is MOVING UP and elevatorB is MOVING DOWN and callButtonDOWN is checked THEN // "elevator A is moving up and elevator B 
+    is moving down. Clients want to go down"
+        IF floorRequestButton < positionEleB THEN // "if clients are at lower level than current position of elevator B --> choose elevator B"
+            arrayBdown.add(floorRequestButton) 
+            arrayBdown.add(floorDisplay)
+            sort arrayBdown decreasingly         
+        ELSE // "clients are at higher level than current position of elevator B --> choose elevator A because elevator A is going up then when
+        elevator A finishs working, it will be going down to pick up these clients. It will save time compared to elevator B"
+            arrayAdown.add(floorRequestButton) 
+            arrayAdown.add(floorDisplay)
+            sort arrayAdown decreasingly 
+        END IF
+    END IF
+
+-----------------------"CASE 6: ELEVATOR A IS MOVING DOWN & ELEVATOR B IS MOVING UP"-----------------------
+    IF elevator A is MOVING DOWN and elevatorB is MOVING UP // 
+    "the concept is as same as ELevator A is moving up and Elevator B is moving down"  
+    END IF
+
+-----------------------"CASE 7: ELEVATOR A & ELEVATOR B ARE MOVING DOWN"-----------------------
+    IF elevator A is MOVING DOWN and elevatorB is MOVING DOWN // 
+    "the concept is as same as ELevator A is moving up and Elevator B is moving up"  
+    END IF
+
+********************* END PROGRAM choosingElevators *********************
 
 
-PROGRAM Listen
-    WHILE elevator(A & B).status = idle DO
 
-        IF |currentFloorA - floorRequestButton| < |currentFloorB - floorRequestButton| THEN
-            elevatorA is called
-        ELSE 
-            elevatorB is called;
-        END
+********************* PROGRAM main *********************
+// "Paralel processing 3 functions: callElevator, ElevatorA, ElevatorB"
 
-        IF elevator A(B) is moving down and callButtonUp(floorRequestButton) = pressed THEN
-            elevator B(A) is called
-        END 
+    Function callElevator
+    IF callButtonUP is checked or callButtonDOWN is checked THEN
+        call PROGRAM choosingElevators; 
+    
+	Function ElevatorA
+    WHILE (true)
+    IF elevatorA is idle THEN
+        Wait for being called;
 
-        IF elevator A(B) is moving up and callButtonDown(floorRequestButton) = pressed THEN
-            elevator B(A) is called
-        END 
+	IF elevatorA is moving up THEN 
+        REPEAT
+		    Get firts item of arrayAup
+			IF positionEleA = arrayAup[0] THEN // "if current position of elevator A is one of the destination floor --> delete action & 
+            open the door"
+				delete arrayAup[0]
+                open the door
+			ELSE // "if not, continue moving up"
+				move elevatorA up to another floor
+            END IF
+        UNTIL arrayAup = empty then elevatorA is idle // "until no more actions in queue"
+    END IF
 
-        Create a queue of actions
-        Execute actions in order
+    IF elevatorA is moving down THEN
+        REPEAT
+		    Get firts item of arrayAdown
+			IF positionEleA = arrayAdown[0] THEN
+				delete arrayAdown[0]
+                open the door
+			ELSE
+				move elevatorA down to another floor
+            END IF
+        UNTIL arrayAdown = empty then elevatorA is idle
+    END IF
+    END WHILE
+            
+	Function ElevatorB // "same concept as Function ElevatorA"	
 
+********************* END PROGRAM main *********************
 
-        IF currentFloor < floorRequestButton THEN 
-            IF callButtonUp(floorRequestButton) or callButtonDown(floorRequestButton) = pressed THEN
-                Run PROGRAM MoveUp;
-            END
-        ELSE IF currentFloor > floorRequestButton THEN 
-            IF callButtonUp(floorRequestButton) or callButtonDown(floorRequestButton) = pressed THEN
-                Run PROGRAM MoveDown;
-            END
-        END
-    END
-
-
-PROGRAM MoveUp;
-    IF currentFloor = 10 THEN
-        Run PROGRAM Listen
-    END
-
-    IF currentFloor < 10 THEN
-        status = move
-        For each floor moving up currentFloor = currentFloor + 1
-    END
-    status = idle
-
-
-PROGRAM MoveDown;
-    IF currentFloor = 1 THEN
-        Run PROGRAM Listen
-    END
-
-    IF currentFloor < 10 THEN
-        status = move
-        For each floor moving up currentFloor = currentFloor + 1
-    END
-    status = idle
 
 
 

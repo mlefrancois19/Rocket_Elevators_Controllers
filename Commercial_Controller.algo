@@ -1,0 +1,17 @@
+
+
+-------------------------------------------------------------------------------------------------------------------------
+DEFINE Column USING id AND status:
+    ID: id,
+    Status: status,
+    ElevatorList: SET to empty List
+    SEQUENCE createElevatorList USING elevator_amount
+        [...]
+        [...]
+    ENDSEQUENCE
+ENDDEFINE
+SET column1 TO INSTANTIATE Column WITH 1 AND online
+SET column1 status TO offline
+
+
+-------------------------------------------------------------------------------------------------------------------------
